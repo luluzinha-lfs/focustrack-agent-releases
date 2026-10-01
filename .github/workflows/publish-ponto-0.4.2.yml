@@ -1,0 +1,93 @@
+name: Publish FocusTrack Ponto 0.4.2
+
+on:
+  push:
+    branches:
+      - "release/ponto-0.4.2-public"
+
+permissions:
+  contents: write
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout public releases repo
+        uses: actions/checkout@v4
+
+      - name: Download validated private CI artifact
+        env:
+          SOURCE_URL: 'https://sdmntprbrazilsouth.oaiusercontent.com/files/00000000-3fb4-820e-86d2-5c9b435b8f32/raw?se=2026-10-01T20%3A08%3A12Z&sp=r&sv=2026-02-06&sr=b&scid=1fa610dc-beef-5262-9ac3-84f5243421b6&skoid=fbc53507-c13f-4907-b4dd-0e03c91f5ad8&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-01T19%3A35%3A16Z&ske=2026-10-02T19%3A35%3A16Z&sks=b&skv=2026-02-06&sig=46H4lcZvt0Sxt5DP/asfjMyKK%2BrgncXjxrxFUXWZuRM%3D'
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 "$SOURCE_URL" -o FocusTrackPonto-windows-0.4.2.zip
+
+      - name: Validate provenance and package contract
+        run: |
+          set -euo pipefail
+          test "$(sha256sum FocusTrackPonto-windows-0.4.2.zip | awk '{print $1}')" = "0afd76a9df97d12e31fcbb6e3404486e9fb044482441361a02af673f999b96b2"
+          rm -rf verify
+          mkdir verify
+          unzip -q FocusTrackPonto-windows-0.4.2.zip -d verify
+          test -f verify/FocusTrackPonto.exe
+          test -f verify/FocusTrackPonto-Setup.cmd
+          test -f verify/Install-FocusTrackPontoStandalone.ps1
+          test -f verify/Read-FocusTrackPontoManifest.ps1
+          test -f verify/manifest.json
+          python - <<'PY'
+          import hashlib, json, pathlib
+          root = pathlib.Path("verify")
+          manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8-sig"))
+          assert manifest["product"] == "FocusTrack Ponto"
+          assert manifest["version"] == "0.4.2"
+          assert manifest["source_commit"] == "59de271aa6d6e0d338f8f7598297adca3c31056d"
+          assert manifest["autostart"] is False
+          assert manifest["offline_punch"] is False
+          digest = hashlib.sha256((root / "FocusTrackPonto.exe").read_bytes()).hexdigest()
+          assert digest == "f89e445f3a59ec6206b98cae5b807962af48331eac2841e5be7b37e1f9f944d6"
+          assert digest == manifest["sha256"].lower()
+          print("PONTO_PUBLIC_PROMOTION_PROVENANCE=PASS")
+          PY
+
+      - name: Build public checksums and notes
+        run: |
+          set -euo pipefail
+          printf "%s  FocusTrackPonto-windows-0.4.2.zip\n%s  FocusTrackPonto.exe\n" \
+            "0afd76a9df97d12e31fcbb6e3404486e9fb044482441361a02af673f999b96b2" \
+            "f89e445f3a59ec6206b98cae5b807962af48331eac2841e5be7b37e1f9f944d6" > SHA256SUMS.txt
+          cat > RELEASE_NOTES_0.4.2.md <<'EOF'
+# FocusTrack Ponto 0.4.2
+
+Pacote público oficial do FocusTrack Ponto para Windows.
+
+- Ativação e reativação por token de uso único emitido pelo administrador.
+- Revogação de dispositivo invalida imediatamente a credencial anterior.
+- Credencial própria do Ponto protegida pelo Windows DPAPI.
+- Instalação standalone por usuário.
+- Sem autostart e sem marcação offline.
+- Heartbeat, foco, presença e atividade do computador não geram ponto.
+- Timestamp e transições permanecem confirmados pelo backend FocusTrack.
+
+Proveniência:
+- Source commit validado: `59de271aa6d6e0d338f8f7598297adca3c31056d`
+- SHA256 FocusTrackPonto.exe: `f89e445f3a59ec6206b98cae5b807962af48331eac2841e5be7b37e1f9f944d6`
+EOF
+
+      - name: Publish public immutable release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="ponto-windows-0.4.2"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release already exists; refusing overwrite."
+            exit 1
+          fi
+          gh release create "$TAG" \
+            FocusTrackPonto-windows-0.4.2.zip \
+            SHA256SUMS.txt \
+            RELEASE_NOTES_0.4.2.md \
+            --target "$GITHUB_SHA" \
+            --title "FocusTrack Ponto Windows 0.4.2" \
+            --notes-file RELEASE_NOTES_0.4.2.md
