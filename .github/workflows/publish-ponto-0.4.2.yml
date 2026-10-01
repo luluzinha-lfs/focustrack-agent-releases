@@ -56,23 +56,23 @@ jobs:
           printf "%s  FocusTrackPonto-windows-0.4.2.zip\n%s  FocusTrackPonto.exe\n" \
             "0afd76a9df97d12e31fcbb6e3404486e9fb044482441361a02af673f999b96b2" \
             "f89e445f3a59ec6206b98cae5b807962af48331eac2841e5be7b37e1f9f944d6" > SHA256SUMS.txt
-          cat > RELEASE_NOTES_0.4.2.md <<'EOF'
-# FocusTrack Ponto 0.4.2
-
-Pacote público oficial do FocusTrack Ponto para Windows.
-
-- Ativação e reativação por token de uso único emitido pelo administrador.
-- Revogação de dispositivo invalida imediatamente a credencial anterior.
-- Credencial própria do Ponto protegida pelo Windows DPAPI.
-- Instalação standalone por usuário.
-- Sem autostart e sem marcação offline.
-- Heartbeat, foco, presença e atividade do computador não geram ponto.
-- Timestamp e transições permanecem confirmados pelo backend FocusTrack.
-
-Proveniência:
-- Source commit validado: `59de271aa6d6e0d338f8f7598297adca3c31056d`
-- SHA256 FocusTrackPonto.exe: `f89e445f3a59ec6206b98cae5b807962af48331eac2841e5be7b37e1f9f944d6`
-EOF
+          printf '%s\n' \
+            '# FocusTrack Ponto 0.4.2' \
+            '' \
+            'Pacote público oficial do FocusTrack Ponto para Windows.' \
+            '' \
+            '- Ativação e reativação por token de uso único emitido pelo administrador.' \
+            '- Revogação de dispositivo invalida imediatamente a credencial anterior.' \
+            '- Credencial própria do Ponto protegida pelo Windows DPAPI.' \
+            '- Instalação standalone por usuário.' \
+            '- Sem autostart e sem marcação offline.' \
+            '- Heartbeat, foco, presença e atividade do computador não geram ponto.' \
+            '- Timestamp e transições permanecem confirmados pelo backend FocusTrack.' \
+            '' \
+            'Proveniência:' \
+            '- Source commit validado: 59de271aa6d6e0d338f8f7598297adca3c31056d' \
+            '- SHA256 FocusTrackPonto.exe: f89e445f3a59ec6206b98cae5b807962af48331eac2841e5be7b37e1f9f944d6' \
+            > RELEASE_NOTES_0.4.2.md
 
       - name: Publish public immutable release
         env:
